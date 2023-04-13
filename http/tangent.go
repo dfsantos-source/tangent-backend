@@ -50,7 +50,7 @@ type Business struct {
 }
 
 type Businesses struct {
-	Business []Business
+	Businesses []Business
 }
 
 type TangentResponse struct {
@@ -94,7 +94,7 @@ func getMapboxResponse(w http.ResponseWriter, r *http.Request, params *TangentRe
 	return &routes, nil
 }
 
-func getYelpResponse(w http.ResponseWriter, r *http.Request, params *TangentRequestParams, coordinates *Coordinates, token string) (interface{}, error) {
+func getYelpResponse(w http.ResponseWriter, r *http.Request, params *TangentRequestParams, coordinates *Coordinates, token string) ([]Business, error) {
 	url := fmt.Sprintf(`https://api.yelp.com/v3/businesses/search?latitude=%s&longitude=%s&term=food&radius=24140&sort_by=best_match&limit=5`, coordinates.Latitude, coordinates.Longitude)
 
 	// build request URL with token
@@ -109,24 +109,21 @@ func getYelpResponse(w http.ResponseWriter, r *http.Request, params *TangentRequ
 		return nil, err
 	}
 
-	// process body
-	body, _ := ioutil.ReadAll(res.Body)
-	fmt.Println(string(body))
+	mapBody, _ := ioutil.ReadAll(res.Body)
 
-	var yelpResponse map[string]interface{}
-
-	// parse response to json
-	err = json.Unmarshal(body, &yelpResponse)
+	var businesses Businesses
+	parseErr := json.Unmarshal(mapBody, &businesses)
 	if err != nil {
-		render.WriteJSON(w, err)
+		render.WriteJSON(w, parseErr)
+		return nil, parseErr
 	}
 
-	fmt.Println(string(fmt.Sprint(yelpResponse["businesses"])))
-
-	return yelpResponse["businesses"], nil
+	return businesses.Businesses, nil
 }
 
-func runYelp(w http.ResponseWriter, r *http.Request, params *TangentRequestParams, coordinates [][]float32, token string) {
+func runYelp(w http.ResponseWriter, r *http.Request, params *TangentRequestParams, coordinates [][]float32, token string) []Business {
+	tangentResponse := TangentResponse{}
+	aggregateList := tangentResponse.Businesses
 	size := len(coordinates)
 	size = size - (size % 5)
 	fmt.Println(size)
@@ -135,13 +132,25 @@ func runYelp(w http.ResponseWriter, r *http.Request, params *TangentRequestParam
 		fmt.Println(coordinate[0])
 		fmt.Println(coordinate[1])
 		fmt.Println("=======")
-		// location := &Location{Latitude: coordinate[1], Longitude: coordinate[0]}
-		// getYelpResponse(w, r, params, location, token)
-		getYelpResponse(w, r, params, &Coordinates{Latitude: fmt.Sprint(coordinate[1]), Longitude: fmt.Sprint(coordinate[0])}, token)
+
+		businesses, err := getYelpResponse(w, r, params, &Coordinates{Latitude: fmt.Sprint(coordinate[1]), Longitude: fmt.Sprint(coordinate[0])}, token)
+		if err != nil {
+			render.WriteJSON(w, err)
+		}
+		for i := 0; i < len(businesses); i++ {
+			aggregateList = append(aggregateList, businesses[i])
+			fmt.Println(aggregateList[i].Name)
+		}
 	}
+	fmt.Println("==================")
+	for i := 0; i < len(aggregateList); i++ {
+		fmt.Println(aggregateList[i].Name)
+	}
+	return aggregateList
 }
 
 func (s *Server) getTangent(w http.ResponseWriter, r *http.Request) {
+
 	mapboxToken := s.MapboxUtil.GetToken()
 
 	var params = *new(TangentRequestParams)
@@ -161,6 +170,10 @@ func (s *Server) getTangent(w http.ResponseWriter, r *http.Request) {
 	coordinates := mapboxResponse.Routes[0].Geometry.Coordinates
 	yelpToken := s.YelpUtil.GetToken()
 
-	runYelp(w, r, &params, coordinates, yelpToken)
-	// location := &Location{Latitude: 42.466415, Longitude: -72.555244}
+	tangentResponse := TangentResponse{}
+	businesses := runYelp(w, r, &params, coordinates, yelpToken)
+	tangentResponse.Businesses = businesses
+	tangentResponse.Coordinates = coordinates
+
+	render.WriteJSON(w, tangentResponse)
 }
