@@ -39,6 +39,21 @@ type Routes struct {
 	Routes []Route `json:"routes"`
 }
 
+type Business struct {
+	Id            string
+	Business_name string
+	Rating        float32
+	Review_count  int
+	Latitude      float32
+	Longitude     float32
+	Price         int
+}
+
+type TangentResponse struct {
+	Businesses  []Business  `json:"businesses"`
+	Coordinates [][]float32 `json:"coordinates"`
+}
+
 var decoder = schema.NewDecoder()
 
 func (s *Server) registerTangentRoutes(r *chi.Mux) {
@@ -116,6 +131,8 @@ func runYelp(w http.ResponseWriter, r *http.Request, params *TangentRequestParam
 		fmt.Println(coordinate[0])
 		fmt.Println(coordinate[1])
 		fmt.Println("=======")
+		location := &Location{Latitude: coordinate[1], Longitude: coordinate[0]}
+		getYelpResponse(w, r, params, location, token)
 	}
 }
 
