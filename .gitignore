@@ -1,0 +1,5 @@
+.DS_Store
+*.test
+*.ego.go
+*.env
+/node_modules
