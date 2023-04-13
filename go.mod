@@ -4,6 +4,8 @@ go 1.20
 
 require github.com/go-chi/chi/v5 v5.0.8
 
+require github.com/gorilla/schema v1.2.0 // indirect
+
 require (
 	github.com/bytedance/sonic v1.8.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
