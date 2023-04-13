@@ -24,9 +24,9 @@ type TangentRequestParams struct {
 	Limit    int  `json:"limit"`
 }
 
-type Location struct {
-	Latitude  float32
-	Longitude float32
+type Coordinates struct {
+	Latitude  string
+	Longitude string
 }
 
 type Route struct {
@@ -40,13 +40,17 @@ type Routes struct {
 }
 
 type Business struct {
-	Id            string
-	Business_name string
-	Rating        float32
-	Review_count  int
-	Latitude      float32
-	Longitude     float32
-	Price         int
+	Id           string
+	Name         string
+	Rating       float32
+	Review_count int
+	Coordinates  Coordinates
+	Price        string
+	Term         string
+}
+
+type Businesses struct {
+	Business []Business
 }
 
 type TangentResponse struct {
@@ -90,8 +94,8 @@ func getMapboxResponse(w http.ResponseWriter, r *http.Request, params *TangentRe
 	return &routes, nil
 }
 
-func getYelpResponse(w http.ResponseWriter, r *http.Request, params *TangentRequestParams, location *Location, token string) (interface{}, error) {
-	url := fmt.Sprintf(`https://api.yelp.com/v3/businesses/search?latitude=%s&longitude=%s&term=food&radius=24140&sort_by=best_match&limit=5`, location.Latitude, location.Longitude)
+func getYelpResponse(w http.ResponseWriter, r *http.Request, params *TangentRequestParams, coordinates *Coordinates, token string) (interface{}, error) {
+	url := fmt.Sprintf(`https://api.yelp.com/v3/businesses/search?latitude=%s&longitude=%s&term=food&radius=24140&sort_by=best_match&limit=5`, coordinates.Latitude, coordinates.Longitude)
 
 	// build request URL with token
 	req, _ := http.NewRequest("GET", url, nil)
@@ -131,8 +135,9 @@ func runYelp(w http.ResponseWriter, r *http.Request, params *TangentRequestParam
 		fmt.Println(coordinate[0])
 		fmt.Println(coordinate[1])
 		fmt.Println("=======")
-		location := &Location{Latitude: coordinate[1], Longitude: coordinate[0]}
-		getYelpResponse(w, r, params, location, token)
+		// location := &Location{Latitude: coordinate[1], Longitude: coordinate[0]}
+		// getYelpResponse(w, r, params, location, token)
+		getYelpResponse(w, r, params, &Coordinates{Latitude: fmt.Sprint(coordinate[1]), Longitude: fmt.Sprint(coordinate[0])}, token)
 	}
 }
 
