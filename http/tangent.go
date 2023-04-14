@@ -72,8 +72,6 @@ func getMapboxResponse(w http.ResponseWriter, r *http.Request, params *TangentRe
 func getYelpResponse(w http.ResponseWriter, r *http.Request, params *TangentRequestParams, coordinates *models.Coordinates, token string) ([]models.Business, error) {
 	priceQuery := utils.ParsePrices(params.Price)
 
-	fmt.Println(priceQuery)
-
 	url := fmt.Sprintf(`https://api.yelp.com/v3/businesses/search?latitude=%s&longitude=%s&term=%s&radius=%s&open_now=%s&sort_by=best_match&limit=5%s`, fmt.Sprint(coordinates.Latitude), fmt.Sprint(coordinates.Longitude), params.Term, fmt.Sprint(params.Pref_Radius), fmt.Sprint(params.Open_Now), priceQuery)
 
 	// build request URL with token
@@ -121,8 +119,10 @@ func runYelp(w http.ResponseWriter, r *http.Request, params *TangentRequestParam
 		}(coordinate)
 	}
 
-	businesses := <-channel
-	aggregateList = append(aggregateList, businesses...)
+	for i := 0; i < size/5; i++ {
+		businesses := <-channel
+		aggregateList = append(aggregateList, businesses...)
+	}
 
 	fmt.Println(aggregateList)
 
