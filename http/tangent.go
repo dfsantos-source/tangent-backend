@@ -21,9 +21,9 @@ type TangentRequestParams struct {
 
 	Pref_Radius float32 `json:"pref_radius"`
 	Term        string  `json:"term"`
-	// Price       []int   `json:"price"`
-	Open_Now bool `json:"open_now"`
-	Limit    int  `json:"limit"`
+	Price       []int   `json:"price"`
+	Open_Now    bool    `json:"open_now"`
+	Limit       int     `json:"limit"`
 }
 
 type TangentResponse struct {
@@ -68,7 +68,7 @@ func getMapboxResponse(w http.ResponseWriter, r *http.Request, params *TangentRe
 }
 
 func getYelpResponse(w http.ResponseWriter, r *http.Request, params *TangentRequestParams, coordinates *models.Coordinates, token string) ([]models.Business, error) {
-	url := fmt.Sprintf(`https://api.yelp.com/v3/businesses/search?latitude=%s&longitude=%s&term=food&radius=24140&sort_by=best_match&limit=5`, fmt.Sprint(coordinates.Latitude), fmt.Sprint(coordinates.Longitude))
+	url := fmt.Sprintf(`https://api.yelp.com/v3/businesses/search?latitude=%s&longitude=%s&term=%s&radius=24140&sort_by=best_match&limit=5`, fmt.Sprint(coordinates.Latitude), fmt.Sprint(coordinates.Longitude), params.Term)
 
 	// build request URL with token
 	req, _ := http.NewRequest("GET", url, nil)

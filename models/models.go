@@ -15,6 +15,10 @@ type Routes struct {
 	Routes []Route `json:"routes"`
 }
 
+type Categories struct {
+	Title string
+}
+
 type Business struct {
 	Id           string
 	Name         string
@@ -22,7 +26,7 @@ type Business struct {
 	Review_count int
 	Coordinates  Coordinates
 	Price        string
-	Term         string
+	Categories   Categories
 }
 
 type Businesses struct {
