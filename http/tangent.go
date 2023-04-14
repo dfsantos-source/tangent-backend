@@ -106,7 +106,7 @@ func runYelp(w http.ResponseWriter, r *http.Request, params *TangentRequestParam
 	for i := 0; i <= size; i += 5 {
 		coordinate := coordinates[i]
 
-		go func(coordinates []float32) {
+		go func(coordinate []float32) {
 			businesses, err := getYelpResponse(w, r, params, &models.Coordinates{Latitude: coordinate[1], Longitude: coordinate[0]}, token)
 			if err != nil {
 				render.WriteJSON(w, err)
