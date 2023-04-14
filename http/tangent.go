@@ -100,25 +100,24 @@ func runYelp(w http.ResponseWriter, r *http.Request, params *TangentRequestParam
 	size := len(coordinates)
 	size = size - (size % 5)
 	fmt.Println(size)
+
+	channel := make(chan []models.Business, size/5)
+
 	for i := 0; i <= size; i += 5 {
 		coordinate := coordinates[i]
-		fmt.Println(coordinate[0])
-		fmt.Println(coordinate[1])
-		fmt.Println("=======")
 
-		businesses, err := getYelpResponse(w, r, params, &models.Coordinates{Latitude: coordinate[1], Longitude: coordinate[0]}, token)
-		if err != nil {
-			render.WriteJSON(w, err)
-		}
-		for i := 0; i < len(businesses); i++ {
-			aggregateList = append(aggregateList, businesses[i])
-			fmt.Println(aggregateList[i].Name)
-		}
+		go func(coordinates []float32) {
+			businesses, err := getYelpResponse(w, r, params, &models.Coordinates{Latitude: coordinate[1], Longitude: coordinate[0]}, token)
+			if err != nil {
+				render.WriteJSON(w, err)
+			}
+			channel <- businesses
+		}(coordinate)
 	}
-	fmt.Println("==================")
-	for i := 0; i < len(aggregateList); i++ {
-		fmt.Println(aggregateList[i].Name)
-	}
+
+	businesses := <-channel
+	aggregateList = append(aggregateList, businesses...)
+
 	return aggregateList
 }
 
