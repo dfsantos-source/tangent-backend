@@ -26,7 +26,7 @@ type Business struct {
 	Review_count int
 	Coordinates  Coordinates
 	Price        string
-	Categories   Categories
+	Categories   []Categories
 }
 
 type Businesses struct {
