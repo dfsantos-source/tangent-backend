@@ -22,7 +22,7 @@ type TangentRequestParams struct {
 
 	Pref_Radius float32 `json:"pref_radius"`
 	Term        string  `json:"term"`
-	Price       []int   `json:"price"`
+	Price       string  `json:"price"`
 	Open_Now    bool    `json:"open_now"`
 	Limit       int     `json:"limit"`
 }
@@ -90,7 +90,7 @@ func getYelpResponse(
 	coordinates *models.Coordinates,
 	token string,
 ) ([]models.Business, error) {
-	priceQuery := utils.ParsePrices(params.Price)
+	priceQuery := utils.ParsePrice(params.Price)
 	url := fmt.Sprintf(`https://api.yelp.com/v3/businesses/search?latitude=%s&longitude=%s&term=%s&radius=%s&open_now=%s&sort_by=best_match&limit=5%s`,
 		fmt.Sprint(coordinates.Latitude),
 		fmt.Sprint(coordinates.Longitude),
