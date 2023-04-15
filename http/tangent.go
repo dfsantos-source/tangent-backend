@@ -32,7 +32,10 @@ type TangentResponse struct {
 	Coordinates [][]float32       `json:"coordinates"`
 }
 
-var decoder = schema.NewDecoder()
+var (
+	decoder             = schema.NewDecoder()
+	COORDINATE_INTERVAL = 5
+)
 
 func (s *Server) registerTangentRoutes(r *chi.Mux) {
 	r.Get("/tangents", s.getTangent)
@@ -48,7 +51,7 @@ func getMapboxResponse(
 	r *http.Request,
 	params *TangentRequestParams,
 	token string,
-) (*models.Routes, error) {
+) (*models.MapboxResponse, error) {
 	delim := "%2C"
 	delim2 := "%3B"
 	url := fmt.Sprintf(`https://api.mapbox.com/directions/v5/mapbox/driving/%s%s%s%s%s%s%s?alternatives=true&geometries=geojson&language=en&overview=simplified&steps=true&access_token=%s`,
@@ -71,13 +74,13 @@ func getMapboxResponse(
 		return nil, err
 	}
 
-	var routes models.Routes
-	err = json.Unmarshal(body, &routes)
+	var mapboxResponse models.MapboxResponse
+	err = json.Unmarshal(body, &mapboxResponse)
 	if err != nil {
 		return nil, err
 	}
 
-	return &routes, nil
+	return &mapboxResponse, nil
 }
 
 func getYelpResponse(
@@ -114,13 +117,13 @@ func getYelpResponse(
 		return nil, err
 	}
 
-	var businesses models.Businesses
-	err = json.Unmarshal(body, &businesses)
+	var yelpResponse models.YelpResponse
+	err = json.Unmarshal(body, &yelpResponse)
 	if err != nil {
 		return nil, err
 	}
 
-	return businesses.Businesses, nil
+	return yelpResponse.Businesses, nil
 }
 
 func runYelp(
@@ -134,12 +137,12 @@ func runYelp(
 	aggregateList := tangentResponse.Businesses
 
 	size := len(coordinates)
-	size = size - (size % 5)
+	size = size - (size % COORDINATE_INTERVAL)
 	fmt.Println(size)
 
-	channel := make(chan []models.Business, size/5)
+	channel := make(chan []models.Business, size/COORDINATE_INTERVAL)
 
-	for i := 0; i <= size; i += 5 {
+	for i := 0; i <= size; i += COORDINATE_INTERVAL {
 		coordinate := coordinates[i]
 
 		go func(coordinate []float32) {
@@ -154,7 +157,7 @@ func runYelp(
 		}(coordinate)
 	}
 
-	for i := 0; i < size/5; i++ {
+	for i := 0; i < size/COORDINATE_INTERVAL; i++ {
 		businesses := <-channel
 		aggregateList = append(aggregateList, businesses...)
 	}

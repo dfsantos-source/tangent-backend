@@ -11,7 +11,7 @@ type Route struct {
 	} `json:"geometry"`
 }
 
-type Routes struct {
+type MapboxResponse struct {
 	Routes []Route `json:"routes"`
 }
 
@@ -29,6 +29,6 @@ type Business struct {
 	Categories   []Categories
 }
 
-type Businesses struct {
+type YelpResponse struct {
 	Businesses []Business
 }
