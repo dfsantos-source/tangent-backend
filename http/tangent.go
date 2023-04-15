@@ -6,9 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	utils "github.com/dfsantos-source/tangent-backend/utils"
-
 	models "github.com/dfsantos-source/tangent-backend/models"
+	utils "github.com/dfsantos-source/tangent-backend/utils"
 
 	"github.com/gin-gonic/gin/render"
 	"github.com/go-chi/chi/v5"
@@ -44,63 +43,96 @@ func (s *Server) test(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Test route evoked."))
 }
 
-func getMapboxResponse(w http.ResponseWriter, r *http.Request, params *TangentRequestParams, token string) (*models.Routes, error) {
-	// delims (given by mapbox)
+func getMapboxResponse(
+	w http.ResponseWriter,
+	r *http.Request,
+	params *TangentRequestParams,
+	token string,
+) (*models.Routes, error) {
 	delim := "%2C"
 	delim2 := "%3B"
-
-	// concatenate start and end location to url query
 	url := fmt.Sprintf(`https://api.mapbox.com/directions/v5/mapbox/driving/%s%s%s%s%s%s%s?alternatives=true&geometries=geojson&language=en&overview=simplified&steps=true&access_token=%s`,
-		fmt.Sprint(params.Start_Lon), delim, fmt.Sprint(params.Start_Lat), delim2, fmt.Sprint(params.End_Lon), delim, fmt.Sprint(params.End_Lat), token)
+		fmt.Sprint(params.Start_Lon),
+		delim,
+		fmt.Sprint(params.Start_Lat),
+		delim2,
+		fmt.Sprint(params.End_Lon),
+		delim,
+		fmt.Sprint(params.End_Lat),
+		token,
+	)
 	response, err := http.Get(url)
 	if err != nil {
-		render.WriteJSON(w, err)
 		return nil, err
 	}
-	mapBody, _ := ioutil.ReadAll(response.Body)
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
 
 	var routes models.Routes
-	parseErr := json.Unmarshal(mapBody, &routes)
+	err = json.Unmarshal(body, &routes)
 	if err != nil {
-		render.WriteJSON(w, parseErr)
-		return nil, parseErr
+		return nil, err
 	}
 
 	return &routes, nil
 }
 
-func getYelpResponse(w http.ResponseWriter, r *http.Request, params *TangentRequestParams, coordinates *models.Coordinates, token string) ([]models.Business, error) {
+func getYelpResponse(
+	w http.ResponseWriter,
+	r *http.Request,
+	params *TangentRequestParams,
+	coordinates *models.Coordinates,
+	token string,
+) ([]models.Business, error) {
 	priceQuery := utils.ParsePrices(params.Price)
+	url := fmt.Sprintf(`https://api.yelp.com/v3/businesses/search?latitude=%s&longitude=%s&term=%s&radius=%s&open_now=%s&sort_by=best_match&limit=5%s`,
+		fmt.Sprint(coordinates.Latitude),
+		fmt.Sprint(coordinates.Longitude),
+		params.Term,
+		fmt.Sprint(params.Pref_Radius),
+		fmt.Sprint(params.Open_Now),
+		priceQuery,
+	)
 
-	url := fmt.Sprintf(`https://api.yelp.com/v3/businesses/search?latitude=%s&longitude=%s&term=%s&radius=%s&open_now=%s&sort_by=best_match&limit=5%s`, fmt.Sprint(coordinates.Latitude), fmt.Sprint(coordinates.Longitude), params.Term, fmt.Sprint(params.Pref_Radius), fmt.Sprint(params.Open_Now), priceQuery)
-
-	// build request URL with token
-	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Add("Authorization", "Bearer "+token)
-
-	// make API call to Yelp
-	res, err := http.DefaultClient.Do(req)
-
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		render.WriteJSON(w, err)
 		return nil, err
 	}
 
-	mapBody, _ := ioutil.ReadAll(res.Body)
+	req.Header.Add("Authorization", "Bearer "+token)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
 
 	var businesses models.Businesses
-	parseErr := json.Unmarshal(mapBody, &businesses)
+	err = json.Unmarshal(body, &businesses)
 	if err != nil {
-		render.WriteJSON(w, parseErr)
-		return nil, parseErr
+		return nil, err
 	}
 
 	return businesses.Businesses, nil
 }
 
-func runYelp(w http.ResponseWriter, r *http.Request, params *TangentRequestParams, coordinates [][]float32, token string) []models.Business {
+func runYelp(
+	w http.ResponseWriter,
+	r *http.Request,
+	params *TangentRequestParams,
+	coordinates [][]float32,
+	token string,
+) ([]models.Business, error) {
 	tangentResponse := TangentResponse{}
 	aggregateList := tangentResponse.Businesses
+
 	size := len(coordinates)
 	size = size - (size % 5)
 	fmt.Println(size)
@@ -114,6 +146,9 @@ func runYelp(w http.ResponseWriter, r *http.Request, params *TangentRequestParam
 			businesses, err := getYelpResponse(w, r, params, &models.Coordinates{Latitude: coordinate[1], Longitude: coordinate[0]}, token)
 			if err != nil {
 				render.WriteJSON(w, err)
+				if err != nil {
+					// TODO: catch error with errcheck
+				}
 			}
 			channel <- businesses
 		}(coordinate)
@@ -126,32 +161,34 @@ func runYelp(w http.ResponseWriter, r *http.Request, params *TangentRequestParam
 
 	fmt.Println(aggregateList)
 
-	return aggregateList
+	return aggregateList, nil
 }
 
 func (s *Server) getTangent(w http.ResponseWriter, r *http.Request) {
-
 	mapboxToken := s.MapboxUtil.GetToken()
+	yelpToken := s.YelpUtil.GetToken()
+	tangentResponse := TangentResponse{}
 
 	var params = *new(TangentRequestParams)
 	err := decoder.Decode(&params, r.URL.Query())
-
 	if err != nil {
 		render.WriteJSON(w, err)
 		return
 	}
 
-	mapboxResponse, mapboxErr := getMapboxResponse(w, r, &params, mapboxToken)
-	if mapboxErr != nil {
-		render.WriteJSON(w, mapboxErr)
+	res, err := getMapboxResponse(w, r, &params, mapboxToken)
+	if err != nil {
+		render.WriteJSON(w, err)
 		return
 	}
 
-	coordinates := mapboxResponse.Routes[0].Geometry.Coordinates
-	yelpToken := s.YelpUtil.GetToken()
+	coordinates := res.Routes[0].Geometry.Coordinates
+	businesses, err := runYelp(w, r, &params, coordinates, yelpToken)
+	if err != nil {
+		render.WriteJSON(w, err)
+		return
+	}
 
-	tangentResponse := TangentResponse{}
-	businesses := runYelp(w, r, &params, coordinates, yelpToken)
 	tangentResponse.Businesses = businesses
 	tangentResponse.Coordinates = coordinates
 

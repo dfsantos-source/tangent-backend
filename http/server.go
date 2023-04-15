@@ -4,9 +4,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/dfsantos-source/tangent-backend"
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
+
+	"github.com/dfsantos-source/tangent-backend"
 )
 
 // server struct to hold instances needed
