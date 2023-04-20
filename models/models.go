@@ -23,10 +23,11 @@ type Business struct {
 	Id           string
 	Name         string
 	Rating       float32
-	Review_count int
+	Review_Count int
 	Coordinates  Coordinates
 	Price        string
 	Categories   []Categories
+	Image_Url    string
 }
 
 type YelpResponse struct {
