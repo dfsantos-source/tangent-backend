@@ -143,18 +143,19 @@ func getYelpResponses(
 	channel := make(chan []models.Business, size/COORDINATE_INTERVAL)
 
 	for i := 0; i <= size; i += COORDINATE_INTERVAL {
-		coordinate := coordinates[i]
-
-		go func(coordinate []float32) {
-			businesses, err := getYelpResponse(w, r, params, &models.Coordinates{Latitude: coordinate[1], Longitude: coordinate[0]}, token)
-			if err != nil {
-				render.WriteJSON(w, err)
+		if i < len(coordinates) {
+			coordinate := coordinates[i]
+			go func(coordinate []float32) {
+				businesses, err := getYelpResponse(w, r, params, &models.Coordinates{Latitude: coordinate[1], Longitude: coordinate[0]}, token)
 				if err != nil {
-					// TODO: catch error with errcheck
+					render.WriteJSON(w, err)
+					if err != nil {
+						// TODO: catch error with errcheck
+					}
 				}
-			}
-			channel <- businesses
-		}(coordinate)
+				channel <- businesses
+			}(coordinate)
+		}
 	}
 
 	for i := 0; i < size/COORDINATE_INTERVAL; i++ {
