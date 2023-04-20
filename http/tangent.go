@@ -126,7 +126,7 @@ func getYelpResponse(
 	return yelpResponse.Businesses, nil
 }
 
-func runYelp(
+func getYelpResponses(
 	w http.ResponseWriter,
 	r *http.Request,
 	params *TangentRequestParams,
@@ -186,7 +186,7 @@ func (s *Server) getTangent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	coordinates := res.Routes[0].Geometry.Coordinates
-	businesses, err := runYelp(w, r, &params, coordinates, yelpToken)
+	businesses, err := getYelpResponses(w, r, &params, coordinates, yelpToken)
 	if err != nil {
 		render.WriteJSON(w, err)
 		return
