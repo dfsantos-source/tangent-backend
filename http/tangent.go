@@ -151,7 +151,7 @@ func getYelpResponses(
 
 	channel := make(chan []models.Business, size/COORDINATE_INTERVAL)
 
-	g := new(errgroup.Group)
+	g, ctx := errgroup.WithContext(r.Context())
 
 	for i := 0; i <= size; i += COORDINATE_INTERVAL {
 		if i < len(coordinates) {
@@ -161,7 +161,13 @@ func getYelpResponses(
 				if err != nil {
 					return err
 				}
-				channel <- businesses
+
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case channel <- businesses:
+				}
+
 				return nil
 			})
 		}
