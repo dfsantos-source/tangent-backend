@@ -8,6 +8,7 @@ import (
 
 	models "github.com/dfsantos-source/tangent-backend/models"
 	utils "github.com/dfsantos-source/tangent-backend/utils"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/gin-gonic/gin/render"
 	"github.com/go-chi/chi/v5"
@@ -74,6 +75,10 @@ func getMapboxResponse(
 		return nil, err
 	}
 
+	if response.StatusCode != 200 {
+		return nil, fmt.Errorf(string(body))
+	}
+
 	var mapboxResponse models.MapboxResponse
 	err = json.Unmarshal(body, &mapboxResponse)
 	if err != nil {
@@ -117,6 +122,10 @@ func getYelpResponse(
 		return nil, err
 	}
 
+	if res.StatusCode != 200 {
+		return nil, fmt.Errorf(string(body))
+	}
+
 	var yelpResponse models.YelpResponse
 	err = json.Unmarshal(body, &yelpResponse)
 	if err != nil {
@@ -142,28 +151,32 @@ func getYelpResponses(
 
 	channel := make(chan []models.Business, size/COORDINATE_INTERVAL)
 
+	g := new(errgroup.Group)
+
 	for i := 0; i <= size; i += COORDINATE_INTERVAL {
 		if i < len(coordinates) {
 			coordinate := coordinates[i]
-			go func(coordinate []float32) {
+			g.Go(func() error {
 				businesses, err := getYelpResponse(w, r, params, &models.Coordinates{Latitude: coordinate[1], Longitude: coordinate[0]}, token)
 				if err != nil {
-					render.WriteJSON(w, err)
-					if err != nil {
-						// TODO: catch error with errcheck
-					}
+					return err
 				}
 				channel <- businesses
-			}(coordinate)
+				return nil
+			})
 		}
 	}
 
-	for i := 0; i < size/COORDINATE_INTERVAL; i++ {
-		businesses := <-channel
-		aggregateList = append(aggregateList, businesses...)
-	}
+	go func() {
+		for businesses := range channel {
+			aggregateList = append(aggregateList, businesses...)
+		}
+		close(channel)
+	}()
 
-	fmt.Println(aggregateList)
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
 
 	return aggregateList, nil
 }
@@ -176,20 +189,23 @@ func (s *Server) getTangent(w http.ResponseWriter, r *http.Request) {
 	var params = *new(TangentRequestParams)
 	err := decoder.Decode(&params, r.URL.Query())
 	if err != nil {
-		render.WriteJSON(w, err)
+		w.WriteHeader(400)
+		render.WriteJSON(w, err.Error())
 		return
 	}
 
 	res, err := getMapboxResponse(w, r, &params, mapboxToken)
 	if err != nil {
-		render.WriteJSON(w, err)
+		w.WriteHeader(400)
+		render.WriteJSON(w, err.Error())
 		return
 	}
 
 	coordinates := res.Routes[0].Geometry.Coordinates
 	businesses, err := getYelpResponses(w, r, &params, coordinates, yelpToken)
 	if err != nil {
-		render.WriteJSON(w, err)
+		w.WriteHeader(400)
+		render.WriteJSON(w, err.Error())
 		return
 	}
 
