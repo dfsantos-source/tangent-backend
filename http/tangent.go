@@ -8,7 +8,6 @@ import (
 
 	models "github.com/dfsantos-source/tangent-backend/models"
 	utils "github.com/dfsantos-source/tangent-backend/utils"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/gin-gonic/gin/render"
 	"github.com/go-chi/chi/v5"
@@ -151,38 +150,24 @@ func getYelpResponses(
 
 	channel := make(chan []models.Business, size/COORDINATE_INTERVAL)
 
-	g, ctx := errgroup.WithContext(r.Context())
-
 	for i := 0; i <= size; i += COORDINATE_INTERVAL {
 		if i < len(coordinates) {
 			coordinate := coordinates[i]
-			g.Go(func() error {
+			go func(coordinate []float32) {
 				businesses, err := getYelpResponse(w, r, params, &models.Coordinates{Latitude: coordinate[1], Longitude: coordinate[0]}, token)
 				if err != nil {
-					return err
 				}
-
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				case channel <- businesses:
-				}
-
-				return nil
-			})
+				channel <- businesses
+			}(coordinate)
 		}
 	}
 
-	go func() {
-		for businesses := range channel {
-			aggregateList = append(aggregateList, businesses...)
-		}
-		close(channel)
-	}()
-
-	if err := g.Wait(); err != nil {
-		return nil, err
+	for i := 0; i < size/COORDINATE_INTERVAL; i++ {
+		businesses := <-channel
+		aggregateList = append(aggregateList, businesses...)
 	}
+
+	fmt.Println(aggregateList)
 
 	return aggregateList, nil
 }
