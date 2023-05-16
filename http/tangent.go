@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
+	"time"
 
 	models "github.com/dfsantos-source/tangent-backend/models"
 	utils "github.com/dfsantos-source/tangent-backend/utils"
@@ -155,6 +157,7 @@ func getYelpResponses(
 
 	for i := 0; i <= size; i += COORDINATE_INTERVAL {
 		if i < len(coordinates) {
+			time.Sleep(time.Millisecond * time.Duration(rand.Intn(500)))
 			coordinate := coordinates[i]
 			g.Go(func() error {
 				businesses, err := getYelpResponse(w, r, params, &models.Coordinates{Latitude: coordinate[1], Longitude: coordinate[0]}, token)
