@@ -141,8 +141,13 @@ func getYelpResponses(
 	coordinates [][]float32,
 	token string,
 ) ([]models.Business, error) {
-	tangentResponse := TangentResponse{}
-	aggregateList := tangentResponse.Businesses
+	// tangentResponse := TangentResponse{}
+	// aggregateList := tangentResponse.Businesses
+
+	businessSet := utils.BusinessSet{
+		Businesses: make([]models.Business, 0),
+		Set:        make(map[string]bool),
+	}
 
 	size := len(coordinates)
 	size = size - (size % COORDINATE_INTERVAL)
@@ -164,12 +169,11 @@ func getYelpResponses(
 
 	for i := 0; i < size/COORDINATE_INTERVAL; i++ {
 		businesses := <-channel
-		aggregateList = append(aggregateList, businesses...)
+		businessSet.AddBusinesses(businesses)
+		// aggregateList = append(aggregateList, businesses...)
 	}
 
-	fmt.Println(aggregateList)
-
-	return aggregateList, nil
+	return businessSet.Businesses, nil
 }
 
 func (s *Server) getTangent(w http.ResponseWriter, r *http.Request) {
