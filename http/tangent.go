@@ -173,7 +173,7 @@ func getYelpResponses(
 		// aggregateList = append(aggregateList, businesses...)
 	}
 
-	return businessSet.Businesses, nil
+	return *businessSet.GetBusinesses(), nil
 }
 
 func (s *Server) getTangent(w http.ResponseWriter, r *http.Request) {
