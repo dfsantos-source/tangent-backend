@@ -38,7 +38,7 @@ var (
 )
 
 func (s *Server) registerTangentRoutes(r *chi.Mux) {
-	r.Get("/tangents", s.getTangent)
+	r.Get("/tangents", s.GetTangent)
 	r.Get("/test", s.test)
 }
 
@@ -176,7 +176,7 @@ func getYelpResponses(
 	return *businessSet.GetBusinesses(), nil
 }
 
-func (s *Server) getTangent(w http.ResponseWriter, r *http.Request) {
+func (s *Server) GetTangent(w http.ResponseWriter, r *http.Request) {
 	mapboxToken := s.MapboxUtil.GetToken()
 	yelpToken := s.YelpUtil.GetToken()
 	tangentResponse := TangentResponse{}
