@@ -19,7 +19,7 @@ This API is built in Go and is responsible for fetching data from two dependenci
 ```
   ~ cd /cmd
 ```
-4. Run the server
+4. Run the server. The server will default to port 3000. 
 ```
   ~ go run main.go 
 ```
