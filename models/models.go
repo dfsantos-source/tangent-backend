@@ -11,6 +11,10 @@ type Route struct {
 	} `json:"geometry"`
 }
 
+type Geometry struct {
+	Coordinates [][]float32 `json:"coordinates"`
+}
+
 type MapboxResponse struct {
 	Routes []Route `json:"routes"`
 }

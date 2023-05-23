@@ -46,7 +46,7 @@ func (s *Server) test(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Test route evoked."))
 }
 
-func getMapboxResponse(
+var GetMapboxResponse = func(
 	w http.ResponseWriter,
 	r *http.Request,
 	params *TangentRequestParams,
@@ -189,7 +189,7 @@ func (s *Server) GetTangent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := getMapboxResponse(w, r, &params, mapboxToken)
+	res, err := GetMapboxResponse(w, r, &params, mapboxToken)
 	if err != nil {
 		w.WriteHeader(400)
 		render.WriteJSON(w, err.Error())
