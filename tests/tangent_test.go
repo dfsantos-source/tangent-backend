@@ -72,6 +72,24 @@ func mockGetYelpResponses(
 	return *businessSet.GetBusinesses(), nil
 }
 
+func mockGetMapboxResponse(
+	w http.ResponseWriter,
+	r *http.Request,
+	params *tangent.TangentRequestParams,
+	token string,
+) (*models.MapboxResponse, error) {
+
+	mapRes := models.MapboxResponse{
+		Routes: []models.Route{{
+			Geometry: models.Geometry{
+				Coordinates: [][]float32{{42.3333, 43.2345}, {52.456, 56.345}},
+			},
+		}},
+	}
+
+	return &mapRes, nil
+}
+
 func setupTest(tb testing.TB, params tangent.TangentRequestParams) (func(tb testing.TB), httptest.ResponseRecorder) {
 	fmt.Println("setup test")
 
@@ -107,6 +125,7 @@ func setupMockTest(tb testing.TB, params tangent.TangentRequestParams) (func(tb 
 	fmt.Println("setup Mock test")
 
 	tangent.GetYelpResponses = mockGetYelpResponses
+	tangent.GetMapboxResponse = mockGetMapboxResponse
 
 	req, err := http.NewRequest("GET", "/tangent", nil)
 
@@ -181,6 +200,10 @@ func TestMockTangentHandler(t *testing.T) {
 	TeardownTest, rr := setupMockTest(t, defaultParams)
 	defer TeardownTest(t)
 
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Handler returned wrong status code. Expected: %d. Got: %d.", http.StatusOK, status)
+	}
+
 	var tangentRes tangent.TangentResponse
 
 	if err := json.NewDecoder(rr.Body).Decode(&tangentRes); err != nil {
@@ -197,8 +220,6 @@ func TestMockResponseDuplicates(t *testing.T) {
 	if err := json.NewDecoder(rr.Body).Decode(&tangentRes); err != nil {
 		t.Errorf("Error decoding tangent response")
 	}
-
-	fmt.Println(tangentRes.Businesses)
 
 	businesses := tangentRes.Businesses
 	dupMap := make(map[string]bool)
