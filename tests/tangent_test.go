@@ -12,7 +12,7 @@ import (
 	utils "github.com/dfsantos-source/tangent-backend/utils"
 )
 
-var defaultParams = tangent.TangentRequestParams{
+var defaultQueryParams = tangent.TangentRequestParams{
 	End_Lat:     42.36025619506836,
 	Term:        "restaurants",
 	End_Lon:     -71.05728149414062,
@@ -72,6 +72,7 @@ func mockGetYelpResponses(
 	return *businessSet.GetBusinesses(), nil
 }
 
+// mocking the the getMapboxResponse function for testing without 3rd party api
 func mockGetMapboxResponse(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -90,6 +91,7 @@ func mockGetMapboxResponse(
 	return &mapRes, nil
 }
 
+// test setup for tests using live api responses (mapbox and yelp api)
 func setupTest(tb testing.TB, params tangent.TangentRequestParams) (func(tb testing.TB), httptest.ResponseRecorder) {
 	fmt.Println("setup test")
 
@@ -121,6 +123,7 @@ func setupTest(tb testing.TB, params tangent.TangentRequestParams) (func(tb test
 	}, *rr
 }
 
+// test setup for test using the mock api responses
 func setupMockTest(tb testing.TB, params tangent.TangentRequestParams) (func(tb testing.TB), httptest.ResponseRecorder) {
 	fmt.Println("setup Mock test")
 
@@ -156,9 +159,10 @@ func setupMockTest(tb testing.TB, params tangent.TangentRequestParams) (func(tb 
 
 }
 
+// testing to see if the yelp api response is in the expected format
 func TestTangentHandler(t *testing.T) {
 
-	teardownTest, rr := setupTest(t, defaultParams)
+	teardownTest, rr := setupTest(t, defaultQueryParams)
 	defer teardownTest(t)
 
 	if status := rr.Code; status != http.StatusOK {
@@ -172,9 +176,10 @@ func TestTangentHandler(t *testing.T) {
 	}
 }
 
+// testing to see if the api removes all duplicate places from the response
 func TestResponseDuplicates(t *testing.T) {
 
-	teardownTest, rr := setupTest(t, defaultParams)
+	teardownTest, rr := setupTest(t, defaultQueryParams)
 	defer teardownTest(t)
 
 	var tangentRes tangent.TangentResponse
@@ -196,8 +201,9 @@ func TestResponseDuplicates(t *testing.T) {
 
 }
 
+// testing to see if the mock Yelp api response is in the right format
 func TestMockTangentHandler(t *testing.T) {
-	TeardownTest, rr := setupMockTest(t, defaultParams)
+	TeardownTest, rr := setupMockTest(t, defaultQueryParams)
 	defer TeardownTest(t)
 
 	if status := rr.Code; status != http.StatusOK {
@@ -211,8 +217,9 @@ func TestMockTangentHandler(t *testing.T) {
 	}
 }
 
+// testing to see if the api removes duplicates from the mock yelp api response
 func TestMockResponseDuplicates(t *testing.T) {
-	TeardownTest, rr := setupMockTest(t, defaultParams)
+	TeardownTest, rr := setupMockTest(t, defaultQueryParams)
 	defer TeardownTest(t)
 
 	var tangentRes tangent.TangentResponse
