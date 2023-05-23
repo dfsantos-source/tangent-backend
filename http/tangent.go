@@ -141,9 +141,6 @@ var GetYelpResponses = func(
 	coordinates [][]float32,
 	token string,
 ) ([]models.Business, error) {
-	// tangentResponse := TangentResponse{}
-	// aggregateList := tangentResponse.Businesses
-
 	businessSet := utils.BusinessSet{
 		Businesses: make([]models.Business, 0),
 		Set:        make(map[string]bool),
@@ -170,7 +167,6 @@ var GetYelpResponses = func(
 	for i := 0; i < size/COORDINATE_INTERVAL; i++ {
 		businesses := <-channel
 		businessSet.AddBusinesses(businesses)
-		// aggregateList = append(aggregateList, businesses...)
 	}
 
 	return *businessSet.GetBusinesses(), nil
